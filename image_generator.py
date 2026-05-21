@@ -1,28 +1,21 @@
 # Command to start
 # streamlit run app.py OR streamlit run app.py --server.port 8502
 
+import os
+
 import torch
-from diffusers import (
-    StableDiffusionPipeline,
-    StableDiffusionXLPipeline,
-    DPMSolverMultistepScheduler,
-)
+from diffusers import DPMSolverMultistepScheduler, StableDiffusionPipeline
 from PIL import Image
 import streamlit as st
 
-# Change this to any Stable Diffusion model ID from Hugging Face
-# SD v1.x / v2.x examples : "runwayml/stable-diffusion-v1-5"
-#                            "stabilityai/stable-diffusion-2-1"
-# SDXL examples            : "stabilityai/stable-diffusion-xl-base-1.0"
-MODEL_ID = "stabilityai/stable-diffusion-xl-base-1.0"
-
-# Auto-detect if the model is SDXL based on its name
-IS_SDXL = "xl" in MODEL_ID.lower()
+# Lightweight default model for faster local execution
+MODEL_ID = os.getenv("MODEL_ID", "runwayml/stable-diffusion-v1-5")
+IS_SDXL = False
 
 
 @st.cache_resource(show_spinner=False)
 def load_pipeline():
-    """Load the correct pipeline automatically based on MODEL_ID."""
+    """Load a single lightweight pipeline for faster local execution."""
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dtype = torch.float16 if device == "cuda" else torch.float32
 
@@ -37,22 +30,14 @@ def load_pipeline():
         torch.backends.cudnn.allow_tf32 = True
         torch.backends.cudnn.benchmark = True
 
-    print(f"[INFO] Loading {'SDXL' if IS_SDXL else 'SD'} model on {device} (dtype={dtype}) ...")
+    print(f"[INFO] Loading SD model on {device} (dtype={dtype}) ...")
 
-    if IS_SDXL:
-        pipe = StableDiffusionXLPipeline.from_pretrained(
-            MODEL_ID,
-            torch_dtype=dtype,
-            use_safetensors=True,
-            variant="fp16" if device == "cuda" else None,
-        )
-    else:
-        pipe = StableDiffusionPipeline.from_pretrained(
-            MODEL_ID,
-            torch_dtype=dtype,
-            safety_checker=None,
-            requires_safety_checker=False,
-        )
+    pipe = StableDiffusionPipeline.from_pretrained(
+        MODEL_ID,
+        torch_dtype=dtype,
+        safety_checker=None,
+        requires_safety_checker=False,
+    )
 
     # Faster scheduler with good quality at lower step counts
     pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
@@ -62,12 +47,6 @@ def load_pipeline():
     # Reduce memory usage on CPU
     if device == "cpu":
         pipe.enable_attention_slicing()
-    else:
-        # Optional GPU speedup if xformers exists
-        try:
-            pipe.enable_xformers_memory_efficient_attention()
-        except Exception:
-            pass
 
     pipe.set_progress_bar_config(disable=True)
 
@@ -78,10 +57,10 @@ def load_pipeline():
 def generate_image(
     prompt: str,
     negative_prompt: str = None,
-    num_inference_steps: int = 20,
-    guidance_scale: float = 7.5,
-    width: int = 512,
-    height: int = 512,
+    num_inference_steps: int = 8,
+    guidance_scale: float = 6.0,
+    width: int = 384,
+    height: int = 384,
     seed: int = None,
 ) -> Image.Image:
     """

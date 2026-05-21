@@ -3,9 +3,11 @@
 
 
 import os
-import streamlit as st
 from datetime import datetime
-from image_generator import generate_image, IS_SDXL
+
+import streamlit as st
+
+from image_generator import IS_SDXL, generate_image
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -15,42 +17,34 @@ st.set_page_config(
 )
 
 st.title("🎨 AI Image Generator")
-st.caption("Powered by Stable Diffusion · Runs 100% on your machine · No API required")
+st.caption("Local Stable Diffusion · Lightweight defaults · No API required")
 
 # ── Sidebar (settings) ───────────────────────────────────────────────────────
 with st.sidebar:
     st.header("⚙️ Settings")
 
-    quality_preset = st.selectbox(
-        "Speed preset",
-        ["Fast", "Balanced", "High Quality"],
-        index=0,
-        help="Fast is best when your machine is slow.",
-    )
-
-    preset_steps = {"Fast": 10, "Balanced": 16, "High Quality": 28}
-    preset_guidance = {"Fast": 6.0, "Balanced": 7.0, "High Quality": 8.0}
+    st.write("Fast mode uses fewer steps and lower resolution for quicker output.")
 
     num_steps = st.slider(
         "Inference Steps",
         min_value=4,
-        max_value=50,
-        value=preset_steps[quality_preset],
+        max_value=12,
+        value=8,
         help="More steps = higher quality, but slower generation.",
     )
 
     guidance_scale = st.slider(
         "Guidance Scale",
         min_value=1.0,
-        max_value=15.0,
-        value=preset_guidance[quality_preset],
+        max_value=10.0,
+        value=6.0,
         step=0.5,
         help="How strictly the model follows your prompt. 7-8 is a good default.",
     )
 
     col1, col2 = st.columns(2)
-    size_options = [512, 640, 768] if IS_SDXL else [384, 512, 640]
-    default_size = 512
+    size_options = [256, 384, 512]
+    default_size = 384
     with col1:
         width = st.selectbox("Width", size_options, index=size_options.index(default_size))
     with col2:
@@ -66,9 +60,8 @@ with st.sidebar:
 
     st.divider()
     st.info(
-        "**Tip:** Keep 512x512 and Fast/Balanced preset for quicker generation. "
-        "First run downloads model files once and caches them locally. "
-        "Subsequent runs are instant."
+        "**Tip:** Keep 384x384 and low steps for the fastest output. "
+        "First run downloads model files once and caches them locally."
     )
 
 # ── Main area ────────────────────────────────────────────────────────────────
