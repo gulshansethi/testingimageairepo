@@ -1,0 +1,17 @@
+# Core ML libraries
+torch>=2.2.0
+torchvision>=0.17.0
+
+# Stable Diffusion pipeline
+diffusers>=0.27.0
+transformers>=4.38.0
+accelerate>=0.28.0
+
+# Image handling
+Pillow>=10.0.0
+
+# Web UI
+streamlit>=1.33.0
+
+# Command to start
+# streamlit run app.py OR streamlit run app.py --server.port 8502
